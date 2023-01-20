@@ -1,0 +1,41 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: $APPLICATION_NAME-$SERVICE_NAME
+  namespace: $NAMESPACE
+spec:
+  params:
+    - name: gitrepositoryurl
+      description: The URL which should be cloned from.
+    - name: gitrepositoryname
+      description: The repository which is used as application name.
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: $APPLICATION_NAME-$SERVICE_NAME-
+      spec:
+        taskRunSpecs:
+          - pipelineTaskName: clone-repository
+            taskServiceAccountName: git-bot
+          - pipelineTaskName: test-deployment
+            taskServiceAccountName: deployment-bot
+        pipelineRef:
+          name: $APPLICATION_NAME-$SERVICE_NAME
+        params:
+          - name: repository-url
+            value: $GIT_REPOSITORY_URL
+          - name: app-name
+            value: $SERVICE_NAME
+          - name: image-name
+            value: image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$APPLICATION_NAME-$SERVICE_NAME
+        workspaces:
+          - name: pipeline-shared-data
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Gi

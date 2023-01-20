@@ -1,0 +1,12 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: $APPLICATION_NAME-$SERVICE_NAME
+  namespace: $NAMESPACE
+spec:
+  serviceAccountName: pipeline-trigger-bot
+  triggers:
+    - bindings:
+      template:
+        ref: $APPLICATION_NAME-$SERVICE_NAME

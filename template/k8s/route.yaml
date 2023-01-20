@@ -1,0 +1,16 @@
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Validate=false
+    openshift.io/host.generated: "true"
+  name: public-endpoint-$APPLICATION_NAME-$SERVICE_NAME
+spec:
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: $APPLICATION_NAME-$SERVICE_NAME
+    weight: 100
+  wildcardPolicy: None

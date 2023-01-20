@@ -1,0 +1,78 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: $APPLICATION_NAME-$SERVICE_NAME
+  namespace: $NAMESPACE
+  labels:
+    app.kubernetes.io/instance: $SERVICE_NAME
+spec:
+  params:
+    - name: repository-url
+      type: string
+      description: Repository URL to clone
+    - name: image-name
+      type: string
+      description: Docker image name
+    - name: app-name
+      type: string
+      description: The name of the app
+  workspaces:
+    - name: pipeline-shared-data
+  tasks:
+    - name: clone-repository
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: pipeline-shared-data
+      params:
+        - name: url
+          value: "$(params.repository-url)"
+    - name: build-image
+      taskRef:
+        kind: ClusterTask
+        name: buildah
+      runAfter:
+        - clone-repository
+      workspaces:
+        - name: source
+          workspace: pipeline-shared-data
+      params:
+        - name: IMAGE
+          value: "$(params.image-name):$(tasks.clone-repository.results.commit)"
+    - name: create-manifest
+      taskRef:
+        kind: Task
+        name: kustomize-build
+      runAfter:
+        - build-image
+      workspaces:
+        - name: source
+          workspace: pipeline-shared-data
+      params:
+        - name: app-name
+          value: "$(params.app-name)"
+        - name: app-namespace
+          value: "$(context.pipelineRun.namespace)"
+        - name: image-with-tag
+          value: "$(params.image-name):$(tasks.clone-repository.results.commit)"
+        - name: source-repo
+          value: "$(params.repository-url)"
+        - name: commit
+          value: "$(tasks.clone-repository.results.commit)"
+    - name: test-deployment
+      taskRef:
+        kind: Task
+        name: test-deployment
+      params:
+        - name: app-name
+          value: "$(params.app-name)"
+        - name: app-namespace
+          value: "$(context.pipelineRun.namespace)"
+      workspaces:
+        - name: source
+          workspace: pipeline-shared-data
+      runAfter:
+        - create-manifest
