@@ -105,6 +105,10 @@ function apply_pipeline_to_openshift {
     for file_name in $(ls -p ./template/resources/ | grep -v /); do
         if [ ! -d "$file_name" ]; then
             cat "./template/resources/$file_name" | envsubst | oc apply -f -
+            if [ $? -ne 0 ]; then
+                echo -e "\033[31mError applying $file_name\033[0m"
+                exit 1
+            fi
         fi
     done
     oc apply -f ./template/tasks/
