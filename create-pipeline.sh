@@ -104,14 +104,15 @@ function apply_pipeline_to_openshift {
 
     for file_name in $(ls -p ./template/resources/ | grep -v /); do
         if [ ! -d "$file_name" ]; then
-            oc apply -f "./template/resources/$file_name" | envsubst > ./build/pipeline/$file_name.yaml
+            cat "./template/resources/$file_name" | envsubst | oc apply -f -
         fi
     done
     oc apply -f ./template/tasks/
-    route = oc get routes -o custom-columns=webhooks:spec.host | grep git-webhook-$APPLICATION_NAME-$SERVICE_NAME
 
-    echo -e "🎉 \033[32mSuccessfully created pipeline:\033[0m You can add the following route as webhook in your repositories ."
-    echo -e "                                $route"
+    route=$(oc get routes --namespace $NAMESPACE -o custom-columns=webhooks:spec.host | grep git-webhook-$APPLICATION_NAME-$SERVICE_NAME)
+
+    echo -e "\n🎉 \033[32mSuccessfully created pipeline:\033[0m You can add the following route as webhook in your repositories:"
+    echo -e "\n\033[35m$route\033[0m\n"
 }
 
 # ------------------------------------- Main Programm -----------------------------------------
