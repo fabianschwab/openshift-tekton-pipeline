@@ -66,3 +66,5 @@ oc get routes -o custom-columns=webhooks:spec.host
 ## Future features
 
 [ ] Push manifest to gitOps repo when successfully deployed
+
+<https://img.shields.io/github/license/fabianschwab/openshift-tekton-pipeline?logo=MIT&style=for-the-badge>
