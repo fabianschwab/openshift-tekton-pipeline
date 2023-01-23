@@ -65,7 +65,4 @@ oc get routes -o custom-columns=webhooks:spec.host
 
 ## Future features
 
-[ ] Proper formatted output
-[ ] Check for connected cluster (oc)
 [ ] Push manifest to gitOps repo when successfully deployed
-[ ] CLI asking for input vars => when already set show old input in brackets and allow as default value
