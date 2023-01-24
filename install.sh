@@ -1,12 +1,10 @@
 #!/bin/bash
 
 # specify the repository URL
-repo_url="https://github.com/fabianschwab/openshift-tekton-pipeline/tree/main/"
+repo_url="https://github.com/fabianschwab/openshift-tekton-pipeline/archive/refs/heads/main.zip"
 
-# specify the files to be copied
-files=("create-pipeline.sh" "template")
+curl -LJO "$repo_url" && unzip -m main.zip -d ./tmp-installer/
 
-# loop through the files array and download each file
-for file in "${files[@]}"; do
-  curl -LJO "$repo_url/$file" -o "$file"
-done
+mv -r ./tmp-installer/template ./tmp-installer/create-pipeline.sh . && rm -rf ./tmp-installer
+
+./create-pipeline.sh
