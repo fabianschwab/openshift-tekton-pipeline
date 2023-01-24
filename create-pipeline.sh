@@ -167,7 +167,13 @@ function apply_pipeline_to_openshift {
 
 function check_ignore {
     if [ -n "$ignore" ]; then
-        # todo
+        #gitignore
+        echo -e "\npipeline.config" >> .gitignore
+        echo -e "build/pipeline" >> .gitignore
+        #dockerignore
+        echo -e "\npipeline.config" >> .dockerignore
+        echo -e "build/pipeline" >> .dockerignore
+        
         echo -e "\n\033[32mSuccess:\033[0m Updated 'ignore' files."
     else
         echo -e "\033[33mWarning:\033[0m Don't forgett to put the pipeline.config and the pipeline folder on your ignore files, as well as the build/pipeline in case you created it.\n"
