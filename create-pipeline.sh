@@ -139,6 +139,10 @@ do
             generate=true
             break
             ;;
+        -a|--apply)
+            apply_pipeline_to_openshift
+            exit 0
+            ;;
         *)
             echo "Unknown parameter!"
             exit 1
