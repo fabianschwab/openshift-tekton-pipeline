@@ -22,4 +22,4 @@ while true; do
     fi
 done
 
-echo -e "If you are connected to your cluster run 'create-pipeline.sh --apply' to cerate the pipeline or apply all the files manually from the '/build/pipeline' folder."
+echo -e "\n\033[36mIf you are connected to your cluster run 'create-pipeline.sh --apply' to cerate the pipeline or apply all the files manually from the '/build/pipeline' folder.\033[0m"

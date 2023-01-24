@@ -1,15 +1,26 @@
-# Create Tekton Pipeline for Openshift Projects
+# Create a Simple Tekton Pipeline for Openshift Projects
 
-To create a pipeline check out the `create-pipeline.sh` and modify the environment variables.
-
-Than run:
+Run the command below directly from your projects repository:
 
 ```shell
-./create-pipeline.sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/fabianschwab/openshift-tekton-pipeline/main/install.sh)"
 ```
 
-If you are connected to the cluster, all resources are created automatically in the current project.
+If you are connected to the cluster, all resources can be created automatically in a given project.
 Otherwise all files are in the `build` directory.
+
+## Folder and File Structure
+
+If the command is executed successfully, some files are downloaded to current dictionary:
+
+• `create-pipeline.sh` executable
+• `template` containing all `.yaml` files needed for the pipeline
+
+After the execution of the script there is a `pipeline.config` file, which contains all the inputs from the command.
+The values can be changed by running the script again or by editing them manually.
+
+To update a changed configuration, execute the `create-pipeline.sh --apply` command.
+If you are not connected to your cluster, generate the output files with `create-pipeline.sh --generate`
 
 ## Created Resources
 
@@ -17,7 +28,6 @@ Otherwise all files are in the `build` directory.
    - For triggering pipeline runs [service-account-pipeline](./template/service-account-pipeline.yaml)
    - For accessing repositories [service-account-git](./template/service-account-git.yaml)
    - For deploying resources [service-account-deployment](./template/service-account-deployment.yaml)
-   <!-- ! FIXME trigger service account cluster role ??? namespace for project??? -->
 2. Secret for each service of an application
    - For accessing the source repository [secret-git](./template/secret-git.yaml)
 3. Image streams for each service to keep the build images
@@ -31,37 +41,6 @@ Otherwise all files are in the `build` directory.
 6. Tekton Tasks
    <!-- TODO - kustomize-build -->
    <!-- TODO - test-deployment -->
-
-## Manual steps
-
-Change all `environment variables` in the files to your needs and apply all `.yaml` files.
-
-```shell
-# To setup the pipeline run the following commands
-cd template
-
-oc apply -f service-account-pipeline.yaml
-oc apply -f service-account-git.yaml
-oc apply -f service-account-deployment.yaml
-
-oc apply -f secret-git.yaml
-oc apply -f image-stream.yaml
-oc apply -f pipeline.yaml
-oc apply -f trigger-template.yaml
-oc apply -f trigger-event-listener.yaml
-oc apply -f trigger-route.yaml
-
-# To setup the tasks needed by the pipeline run the following commands
-cd .. && cd resources/tasks
-
-oc apply -f kustomize-build.yaml
-oc apply -f test-deployment.yaml
-
-cd ../..
-
-# Tog et the webhook for you repository run
-oc get routes -o custom-columns=webhooks:spec.host
-```
 
 ## Future features
 

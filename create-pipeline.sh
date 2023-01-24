@@ -29,7 +29,9 @@ function print_help {
     echo "  • GIT_ACCESS_TOKEN    - Token for authentication." 
 
     echo -e "\nOptions:"
-    echo "  -h, --help            - Show this help text"
+    echo "  -h, --help            - Show this help text."
+    echo "  -a, --apply           - Reapply the pipeline configuration to the connected cluster."
+    echo "  -g, --generate        - Only generate the `yaml` files for the pipeline with the configured inputs."
 }
 
 function pipeline_config {
