@@ -34,10 +34,54 @@ function print_help {
     echo "  -g, --generate        - Only generate the `yaml` files for the pipeline with the configured inputs."
 }
 
+function get_input {
+    echo "Plaese provide the values for the needed parameter."
+    echo -e "If you are note sure about the values, use the \033[1m--help\033[0m parameter to get a description.\n"
+
+    # check if file exists and export all variables
+    # they are reused as default value in the next step as a default
+    if [ -e pipeline.config ]; then
+        while read line; do
+            if [[ -n "$line" ]]; then
+                IFS="=" read -r parameter_name value <<< "$line"
+                export $parameter_name=$value
+            fi
+        done < pipeline.config
+    fi
+
+    # as long as not everything is run through nothing should be saved persistent
+    tmp=''
+
+    for parameter_name in "${parameters[@]}" ; do
+        input_text=''
+        if [ -z "${!parameter_name}" ]; then
+            input_text="$parameter_name: "
+        else
+            input_text="$parameter_name: ("${!parameter_name}") "
+        fi
+        read -p "$input_text" input
+        if [ -z "$input" ]; then
+            # keep old input
+            export $parameter_name=${!parameter_name}
+        else
+            # set new input
+            export $parameter_name=$input
+        fi
+        tmp+=$parameter_name"="${!parameter_name}"\n"
+    done
+
+    # updfate config and deployment folder
+    echo -e ""
+    pipeline_config $tmp
+    echo -e ""
+    kubernetes_folder
+    echo -e ""
+}
+
 function pipeline_config {
     echo -e $1 > pipeline.config
     echo -e "\033[32mSuccess:\033[0m Created 'pipeline.config' file."
-    echo -e "\033[33mInfo:\033[0m    Please add the 'pipeline.config' file to your .gitignore file."
+    echo -e "\033[34mInfo:\033[0m    Please add the 'pipeline.config' file to your .gitignore file."
 }
 
 function kubernetes_folder {
@@ -50,12 +94,12 @@ function kubernetes_folder {
     cat ./template/k8s/kustomization.yaml | envsubst > ./k8s/kustomization.yaml
 
     echo -e "\033[32mSuccess:\033[0m Created deployment files in the 'k8s' directory."
-    echo -e "\033[33mInfo:\033[0m    This folder needs to be added to the repository in order the execute the pipeline successfully."
+    echo -e "\033[34mInfo:\033[0m    This folder needs to be added to the repository in order the execute the pipeline successfully."
 }
 
 function generate_pipeline_files {
 
-    echo -e "\033[34mCreating all necessary files to step up the build pipeline. Please apply the files by yourself.\033[0m\n"
+    echo -e "\033[34mInfo:\033[0m Creating all necessary files to step up the build pipeline...\n"
 
     mkdir -p ./build/pipeline
     for file_name in $(ls -p ./template/resources/ | grep -v /); do
@@ -66,9 +110,9 @@ function generate_pipeline_files {
     done
 
     cp -r ./template/tasks/ ./build/pipeline
-    echo -e "\ntasks copied to: ./build/pipeline/\n"
+    echo -e "\ntasks created: ./build/pipeline/\n"
 
-    echo -e "\033[35mApply all the files on your cluster. Do not commit the generated files to your repositroy due to saved secrets.\033[0m"
+    echo -e "\033[34mInfo:\033[0m ..all files created in '/build/pipeline'.\n"
 }
 
 function apply_pipeline_to_openshift {
@@ -89,7 +133,7 @@ function apply_pipeline_to_openshift {
     status=$(oc cluster-info)
     cluster_url=$(echo "$status" | sed -n 's/.*\(https:\/\/[^ ]*\).*/\1/p')
 
-    echo -e "\033[34mCreating resources on connected cluster: \033[1m$cluster_url\033[0m"
+    echo -e "\033[34mInfo:\033[0m Creating resources on connected cluster: \033[1m$cluster_url\033[0m"
 
     while true; do
         read -p "Are you sure? (yes/no): " answer
@@ -118,39 +162,46 @@ function apply_pipeline_to_openshift {
     route=$(oc get routes --namespace $NAMESPACE -o custom-columns=webhooks:spec.host | grep git-webhook-$APPLICATION_NAME-$SERVICE_NAME)
 
     echo -e "\n🎉 \033[32mSuccessfully created pipeline:\033[0m You can add the following route as webhook in your repositories:"
-    echo -e "\n\033[35m$route\033[0m\n"
+    echo -e "\n\033[35mImportant:\033[0m $route\n"
+}
+
+function check_ignore {
+    if [ -n "$ignore" ]; then
+        echo "creating files"
+        echo -e "\n\033[32mSuccess:\033[0m Updated 'ignore' files."
+    else
+        echo -e "\033[33mWarning:\033[0m Don't forgett to put the pipeline.config and the pipeline folder on your ignore files, as well as the build/pipeline in case you created it.\n"
+        echo -e "\033[33mWarning:\033[0m Do not commit the generated files to your repositroy due to saved secrets."
+    fi
 }
 
 # ------------------------------------- Main Programm -----------------------------------------
 # List of available parameter in the config file
 parameters=("NAMESPACE" "APPLICATION_NAME" "SERVICE_NAME" "SERVICE_PORT" "GIT_REPOSITORY_URL" "GIT_SERVER_DOMAIN" "GIT_USER" "GIT_ACCESS_TOKEN")
-generate=false
+
+while getopts "hagi" opt; do
+  case $opt in
+    h)
+        print_help
+        exit 0
+        ;;
+    a)
+        apply=true
+        ;;
+    g)
+        generate=true
+        ;;
+    i)
+        ignore=true
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+  esac
+done
 
 echo -e "\033[1;47m Red Hat OpenShift Pipeline Creator \033[0m\n"
-
-while [[ $# -gt 0 ]]
-do
-    key="$1"
-
-    case $key in
-        -h|--help)
-            print_help
-            exit 0
-            ;;
-        -g|--generate)
-            generate=true
-            break
-            ;;
-        -a|--apply)
-            apply_pipeline_to_openshift
-            exit 0
-            ;;
-        *)
-            echo "Unknown parameter!"
-            exit 1
-            ;;
-    esac
-done
 
 # ------------------------------------- Precheck -----------------------------------------
  if [ ! -d "./template" ]; then
@@ -158,51 +209,21 @@ done
     exit 1
 fi
 
-echo "Plaese provide the values for the needed parameter."
-echo -e "If you are note sure about the values, use the \033[1m--help\033[0m parameter to get a description.\n"
+get_input
 
-# check if file exists and export all variables
-# they are reused as default value in the next step as a default
-if [ -e pipeline.config ]; then
-    while read line; do
-        if [[ -n "$line" ]]; then
-            IFS="=" read -r parameter_name value <<< "$line"
-            export $parameter_name=$value
-        fi
-    done < pipeline.config
-fi
-
-# as long as not everything is run through nothing should be saved persistent
-tmp=''
-
-for parameter_name in "${parameters[@]}" ; do
-    input_text=''
-    if [ -z "${!parameter_name}" ]; then
-        input_text="$parameter_name: "
-    else
-        input_text="$parameter_name: ("${!parameter_name}") "
-    fi
-    read -p "$input_text" input
-    if [ -z "$input" ]; then
-        # keep old input
-        export $parameter_name=${!parameter_name}
-    else
-        # set new input
-        export $parameter_name=$input
-    fi
-    tmp+=$parameter_name"="${!parameter_name}"\n"
-done
-
-echo -e ""
-pipeline_config $tmp
-echo -e ""
-kubernetes_folder
-echo -e ""
-
-if $generate; then
+# only generate files and exit
+if [ -n "$generate" ] && [ ! -n "$apply" ]; then
     generate_pipeline_files
-else
-    apply_pipeline_to_openshift
+    check_ignore
+    exit 0
+# generate files but also apply
+elif [ -n "$generate" ] && [ -n "$apply" ]; then
+    generate_pipeline_files
 fi
 
-echo -e "Please do not forget the containerfile / dockerfile in your repository for the build process."
+# if apply or no options passed also apply
+apply_pipeline_to_openshift
+check_ignore
+
+
+echo -e "\033[35mImportant:\033[0m Please do not forget the containerfile / dockerfile in your repository for the build process."
