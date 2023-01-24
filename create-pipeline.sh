@@ -228,3 +228,5 @@ check_ignore
 
 
 echo -e "\033[35mImportant:\033[0m Please do not forget the containerfile / dockerfile in your repository for the build process."
+
+exit 0

@@ -15,10 +15,12 @@ while true; do
         break
     elif [[ $answer = "no" || $answer = "n" ]]; then
         ./create-pipeline.sh -g
-        exit 1
+        break
     else
         echo "Invalid input. Please enter 'yes' or 'no'."
     fi
 done
 
 echo -e "\n\033[36mIf you are connected to your cluster run 'create-pipeline.sh --apply' to cerate the pipeline or apply all the files manually from the '/build/pipeline' folder.\033[0m"
+
+exit 0
